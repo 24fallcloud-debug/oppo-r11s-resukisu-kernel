@@ -18,14 +18,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential bc bison flex libssl-dev libelf-dev zip wget git gcc-aarch64-linux-gnu python3 python-is-python3
 
-    - name: Fix Python2 to Python3
+    - name: Fix Python2 to Python3 in scripts
       run: |
-        # 强行把所有老脚本里的 python2 替换成 python3
+        # 强行把老脚本里的 python2 替换成 python3
         find scripts -type f -exec sed -i 's/python2/python3/g' {} +
 
-    - name: Patch dtc yylloc Bug (强制物理修复)
+    - name: Patch dtc yylloc Bug
       run: |
-        # 暴力修改即将被编译的 _shipped 文件，将重复的 int yylloc 改成 extern
+        # 暴力修改即将被编译的 _shipped 文件，将重复的 yylloc 改成 extern
         sed -i 's/^YYLTYPE yylloc;/extern YYLTYPE yylloc;/' scripts/dtc/dtc-lexer.lex.c_shipped
         sed -i 's/^int yylloc;/extern int yylloc;/' scripts/dtc/dtc-parser.tab.c_shipped
 
@@ -35,7 +35,12 @@ jobs:
         export CROSS_COMPILE=aarch64-linux-gnu-
         
         make O=out sdm660_defconfig
-        make O=out -j$(nproc) HOSTCFLAGS="-fcommon -Wno-error" KCFLAGS="-fcommon -Wno-error" Image.gz dtbs
+        
+        # 终极火力压制：忽略数组比较警告、忽略 common 重复定义、忽略所有警告变报错
+        make O=out -j$(nproc) \
+          HOSTCFLAGS="-fcommon -Wno-error -Wno-array-compare" \
+          KCFLAGS="-fcommon -Wno-error -Wno-array-compare" \
+          Image.gz dtbs
 
     - name: Package AnyKernel
       run: |

@@ -18,10 +18,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential bc bison flex libssl-dev libelf-dev zip wget git
 
-    - name: Download Toolchain (GCC 7.5)
+    - name: Download Toolchain (GitHub Source)
       run: |
-        # 使用国内镜像下载 Linaro GCC 7.5，避免 301 报错
-        wget https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/_toolchains/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+        # 直接从 GitHub 拉取别人打包好的 Linaro 工具链，Actions 机器内网拉取极快
+        wget https://github.com/WEIRDPENGUIN/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/releases/download/v1.0/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
         tar -xf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
         echo "$PWD/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
 
@@ -30,9 +30,21 @@ jobs:
         export ARCH=arm64
         export CROSS_COMPILE=aarch64-linux-gnu-
         
-        # 全局注入 -fcommon 和 -Wno-error，解决 yylloc 报错
-        export HOSTCFLAGS="-fcommon -Wno-error"
-        export KCFLAGS="-fcommon -Wno-error"
+        # 全局注入 -fcommon，解决 yylloc 报错
+        export HOSTCFLAGS="-fcommon"
+        export KCFLAGS="-fcommon"
         
         make O=out sdm660_defconfig
         make O=out -j$(nproc) Image.gz dtbs
+
+    - name: Package AnyKernel
+      run: |
+        cp out/arch/arm64/boot/Image.gz AnyKernel/
+        cd AnyKernel
+        zip -r ../OPPO_R11s_RESUKISU_Kernel.zip *
+
+    - name: Upload Kernel Zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-Zip
+        path: OPPO_R11s_RESUKISU_Kernel.zip

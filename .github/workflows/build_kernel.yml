@@ -29,14 +29,23 @@ jobs:
         sed -i 's/^YYLTYPE yylloc;/extern YYLTYPE yylloc;/' scripts/dtc/dtc-lexer.lex.c_shipped
         sed -i 's/^int yylloc;/extern int yylloc;/' scripts/dtc/dtc-parser.tab.c_shipped
 
-    - name: Compile Kernel
+        - name: Compile Kernel
       run: |
         export ARCH=arm64
         export CROSS_COMPILE=aarch64-linux-gnu-
-        
+
         make O=out sdm660_defconfig
-        
-        # 终极火力压制：忽略数组比较警告、忽略 common 重复定义、忽略所有警告变报错
+
+        # 注释 BakaSU 的 git submodule 检查
+        sed -i '/You should use \$(REPO_NAME) as a git submodule instead of copying code directly/s/^/#/' KernelSU/kernel/Kbuild
+
+        # 强制 Manual Hook，关掉 Tracepoint Hook（4.4 内核必须走这条）
+        ./scripts/config --file out/.config -e KSU_MANUAL_HOOK -d KSU_TRACEPOINT_HOOK
+        make O=out olddefconfig
+
+        # 确认配置真的生效了
+        grep -E "KSU_(MANUAL|TRACEPOINT)_HOOK|CONFIG_KSU=" out/.config
+
         make O=out -j$(nproc) \
           HOSTCFLAGS="-fcommon -Wno-error -Wno-array-compare" \
           KCFLAGS="-fcommon -Wno-error -Wno-array-compare" \

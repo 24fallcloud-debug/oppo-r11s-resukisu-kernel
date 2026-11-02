@@ -18,31 +18,21 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential bc bison flex libssl-dev libelf-dev zip wget git
 
-    - name: Download Toolchain (Google NDK)
+    - name: Download Toolchain (GCC 7.5)
       run: |
-        wget https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
-        unzip -q android-ndk-r23b-linux.zip
-        echo "$PWD/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
+        # 使用国内镜像下载 Linaro GCC 7.5，避免 301 报错
+        wget https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/_toolchains/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+        tar -xf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+        echo "$PWD/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
 
     - name: Compile Kernel
       run: |
         export ARCH=arm64
-        export CROSS_COMPILE=aarch64-linux-android-
+        export CROSS_COMPILE=aarch64-linux-gnu-
         
-        # 1. 生成 defconfig
-        make O=out CC=clang sdm660_defconfig
+        # 全局注入 -fcommon 和 -Wno-error，解决 yylloc 报错
+        export HOSTCFLAGS="-fcommon -Wno-error"
+        export KCFLAGS="-fcommon -Wno-error"
         
-        # 2. 编译内核 (-fcommon 解决 yylloc 报错, -Wno-error 防止旧警告中断编译)
-        make O=out -j$(nproc) CC=clang KCFLAGS="-fcommon -Wno-error" Image.gz dtbs
-
-    - name: Package AnyKernel
-      run: |
-        cp out/arch/arm64/boot/Image.gz AnyKernel/
-        cd AnyKernel
-        zip -r ../OPPO_R11s_RESUKISU_Kernel.zip *
-
-    - name: Upload Kernel Zip
-      uses: actions/upload-artifact@v4
-      with:
-        name: Kernel-Zip
-        path: OPPO_R11s_RESUKISU_Kernel.zip
+        make O=out sdm660_defconfig
+        make O=out -j$(nproc) Image.gz dtbs

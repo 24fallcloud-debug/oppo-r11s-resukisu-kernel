@@ -18,6 +18,10 @@
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
 
+#ifdef CONFIG_KSU
+extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
+#endif
+
 void generic_fillattr(struct inode *inode, struct kstat *stat)
 {
 	stat->dev = inode->i_sb->s_dev;
@@ -295,10 +299,9 @@ SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
 	int error;
 
 #ifdef CONFIG_KSU
-	extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
 	ksu_handle_stat(&dfd, &filename, &flag);
 #endif
-	
+
 	error = vfs_fstatat(dfd, filename, &stat, flag);
 	if (error)
 		return error;
@@ -440,6 +443,10 @@ SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
 {
 	struct kstat stat;
 	int error;
+
+#ifdef CONFIG_KSU
+	ksu_handle_stat(&dfd, &filename, &flag);
+#endif
 
 	error = vfs_fstatat(dfd, filename, &stat, flag);
 	if (error)

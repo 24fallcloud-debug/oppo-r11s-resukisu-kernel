@@ -1,0 +1,44 @@
+name: Build OPPO R11s Kernel
+
+on:
+  push:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential bc bison flex libssl-dev libelf-dev zip wget git
+
+    - name: Download Toolchain
+      run: |
+        wget https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+        tar -xf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+        echo "$PWD/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin" >> $GITHUB_PATH
+
+    - name: Compile Kernel
+      run: |
+        export ARCH=arm64
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        make O=out sdm660_defconfig
+        make O=out -j$(nproc) Image.gz dtbs
+
+    - name: Package AnyKernel
+      run: |
+        cp out/arch/arm64/boot/Image.gz AnyKernel/
+        cd AnyKernel
+        zip -r ../OPPO_R11s_RESUKISU_Kernel.zip *
+
+    - name: Upload Kernel Zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: Kernel-Zip
+        path: OPPO_R11s_RESUKISU_Kernel.zip

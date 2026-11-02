@@ -16,8 +16,12 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        # 这里加上 python2 的兼容包，解决 No such file or directory 报错
         sudo apt-get install -y build-essential bc bison flex libssl-dev libelf-dev zip wget git gcc-aarch64-linux-gnu python3 python-is-python3
+
+    - name: Fix Python2 to Python3
+      run: |
+        # 强行把所有老脚本里的 python2 替换成 python3
+        find scripts -type f -exec sed -i 's/python2/python3/g' {} +
 
     - name: Patch dtc yylloc Bug (强制物理修复)
       run: |
@@ -31,7 +35,6 @@ jobs:
         export CROSS_COMPILE=aarch64-linux-gnu-
         
         make O=out sdm660_defconfig
-        # 这里加上 KCFLAGS 和 HOSTCFLAGS 双重保险
         make O=out -j$(nproc) HOSTCFLAGS="-fcommon -Wno-error" KCFLAGS="-fcommon -Wno-error" Image.gz dtbs
 
     - name: Package AnyKernel

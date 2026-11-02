@@ -310,11 +310,14 @@ SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
 	error = vfs_fstatat(dfd, filename, &stat, flag);
 	if (error)
 		return error;
+
 #ifdef CONFIG_KSU
 	ksu_handle_newfstat_ret(&stat);
 #endif
+
 	return cp_new_stat(&stat, statbuf);
 }
+#endif  // <-- 就是这一行，补上它！
 
 SYSCALL_DEFINE2(newfstat, unsigned int, fd, struct stat __user *, statbuf)
 {

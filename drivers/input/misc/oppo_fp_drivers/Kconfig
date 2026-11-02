@@ -16,5 +16,7 @@ config OPPO_FINGERPRINT_MTK
 config OPPO_FINGERPRINT_CHIP
        default 1245
        tristate "Fingerprint chip"
-
+config OPPO_FINGERPRINT_PROJCT
+       int "Fingerprint project id"
+       default 17011
 endif #OPPO_FINGERPRINT

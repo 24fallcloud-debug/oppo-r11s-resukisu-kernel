@@ -20,6 +20,7 @@
 
 #ifdef CONFIG_KSU
 extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
+extern int ksu_handle_newfstat_ret(void *statbuf);
 #endif
 
 void generic_fillattr(struct inode *inode, struct kstat *stat)
@@ -287,7 +288,9 @@ SYSCALL_DEFINE2(newlstat, const char __user *, filename,
 	error = vfs_lstat(filename, &stat);
 	if (error)
 		return error;
-
+#ifdef CONFIG_KSU
+	ksu_handle_newfstat_ret(&stat);  // <-- 加这行
+#endif
 	return cp_new_stat(&stat, statbuf);
 }
 
@@ -421,9 +424,12 @@ SYSCALL_DEFINE2(lstat64, const char __user *, filename,
 	struct kstat stat;
 	int error = vfs_lstat(filename, &stat);
 
-	if (!error)
+	if (!error) {
+#ifdef CONFIG_KSU
+		ksu_handle_newfstat_ret(&stat); // <-- 加这行
+#endif
 		error = cp_new_stat64(&stat, statbuf);
-
+	}
 	return error;
 }
 
@@ -451,6 +457,9 @@ SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
 	error = vfs_fstatat(dfd, filename, &stat, flag);
 	if (error)
 		return error;
+#ifdef CONFIG_KSU
+	ksu_handle_newfstat_ret(&stat); // <-- 加这行
+#endif
 	return cp_new_stat64(&stat, statbuf);
 }
 #endif /* __ARCH_WANT_STAT64 || __ARCH_WANT_COMPAT_STAT64 */
